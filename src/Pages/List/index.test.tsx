@@ -1,38 +1,24 @@
 import React from "react";
-import { BrowserRouter as Router, useLocation } from "react-router-dom";
+import { Router, useLocation } from "react-router-dom";
+import { createMemoryHistory } from "history";
 import { render, screen, fireEvent } from "@testing-library/react";
 import "jest-styled-components";
 
 import { ToDoListProvider } from "Contexts";
-import { ToDoList } from "./index";
-import { ToDoItem } from "Components/ToDoItem";
+import { List } from "./index";
 
-describe("<ToDoList />", () => {
+describe("<List />", () => {
   it("renders component correctly", () => {
-    const { container } = render(
-      <Router>
-        <ToDoListProvider>
-          <ToDoList />
-        </ToDoListProvider>
-      </Router>
-    );
+    const history = createMemoryHistory();
+    history.push("/");
 
-    const toDoList = screen.getByTestId("toDoList");
-    expect(toDoList).toBeInTheDocument();
-    expect(toDoList.firstChild).toBeNull();
-
-    expect(container).toMatchSnapshot();
-  });
-
-  it("shows toDo list", () => {
     localStorage.setItem("ToDoList", '["ToDo 1", "ToDo 2", "ToDo 3"]');
-
-    render(
-      <Router>
-        <ToDoListProvider>
-          <ToDoList />
-        </ToDoListProvider>
-      </Router>
+    const { container } = render(
+      <ToDoListProvider>
+        <Router history={history}>
+          <List />
+        </Router>
+      </ToDoListProvider>
     );
 
     const toDoItem1 = screen.getByText("ToDo 1");
@@ -48,17 +34,25 @@ describe("<ToDoList />", () => {
     expect(toDoItem3.getAttribute("href")).toBe("/detail/2");
 
     expect(screen.getAllByText("삭제").length).toBe(3);
+
+    const addButton = screen.getByText("+");
+    expect(addButton).toBeInTheDocument();
+
+    expect(container).toMatchSnapshot();
   });
 
   it("deletes toDo item", () => {
+    const history = createMemoryHistory();
+    history.push("/");
+
     localStorage.setItem("ToDoList", '["ToDo 1", "ToDo 2", "ToDo 3"]');
 
     render(
-      <Router>
-        <ToDoListProvider>
-          <ToDoList />
-        </ToDoListProvider>
-      </Router>
+      <ToDoListProvider>
+        <Router history={history}>
+          <List />
+        </Router>
+      </ToDoListProvider>
     );
 
     const toDoItem = screen.getByText("ToDo 2");
@@ -76,15 +70,18 @@ describe("<ToDoList />", () => {
       return <div>{pathname}</div>;
     };
 
+    const history = createMemoryHistory();
+    history.push("/");
+
     localStorage.setItem("ToDoList", '["ToDo 1", "ToDo 2", "ToDo 3"]');
 
     render(
-      <Router>
-        <TestComponent />
-        <ToDoListProvider>
-          <ToDoList />
-        </ToDoListProvider>
-      </Router>
+      <ToDoListProvider>
+        <Router history={history}>
+          <TestComponent />
+          <List />
+        </Router>
+      </ToDoListProvider>
     );
 
     const url = screen.getByText("/");
@@ -95,5 +92,32 @@ describe("<ToDoList />", () => {
     fireEvent.click(toDoItem1);
 
     expect(url.textContent).toBe("/detail/1");
+  });
+
+  it("moves to add page", () => {
+    const TestComponent = (): JSX.Element => {
+      const { pathname } = useLocation();
+      return <div>{pathname}</div>;
+    };
+
+    const history = createMemoryHistory();
+    history.push("/");
+
+    render(
+      <ToDoListProvider>
+        <Router history={history}>
+          <TestComponent />
+          <List />
+        </Router>
+      </ToDoListProvider>
+    );
+
+    const url = screen.getByText("/");
+    expect(url).toBeInTheDocument();
+
+    const addButton = screen.getByText("+");
+    fireEvent.click(addButton);
+
+    expect(url.textContent).toBe("/add");
   });
 });

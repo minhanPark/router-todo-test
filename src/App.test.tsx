@@ -1,74 +1,84 @@
-import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import App from './App';
-import 'jest-styled-components';
+import React from "react";
+import { Router } from "react-router-dom";
+import { createMemoryHistory } from "history";
+import { render, screen, fireEvent } from "@testing-library/react";
+import App from "./App";
+import "jest-styled-components";
 
-describe('<App />', () => {
-  it('renders component correctly', () => {
-    const { container } = render(<App />);
+describe("<App />", () => {
+  it("renders component correctly", () => {
+    const history = createMemoryHistory();
+    history.push("/");
 
-    const toDoList = screen.getByTestId('toDoList');
+    const { container } = render(
+      <Router history={history}>
+        <App />
+      </Router>
+    );
+
+    const header = screen.getByText("할 일 목록");
+    expect(header).toBeInTheDocument();
+
+    const toDoList = screen.getByTestId("toDoList");
     expect(toDoList).toBeInTheDocument();
     expect(toDoList.firstChild).toBeNull();
 
-    const input = screen.getByPlaceholderText('할 일을 입력해 주세요');
-    expect(input).toBeInTheDocument();
-
-    const label = screen.getByText('추가');
+    const label = screen.getByText("+");
     expect(label).toBeInTheDocument();
 
     expect(container).toMatchSnapshot();
   });
 
-  it('adds and deletes ToDo items', () => {
-    render(<App />);
+  it("goes add page and goback to list page", () => {
+    const history = createMemoryHistory();
+    history.push("/");
 
-    const input = screen.getByPlaceholderText('할 일을 입력해 주세요');
-    const button = screen.getByText('추가');
-    fireEvent.change(input, { target: { value: 'study react 1' } });
-    fireEvent.click(button);
+    const { container } = render(
+      <Router history={history}>
+        <App />
+      </Router>
+    );
 
-    const todoItem = screen.getByText('study react 1');
-    expect(todoItem).toBeInTheDocument();
-    const deleteButton = screen.getByText('삭제');
-    expect(deleteButton).toBeInTheDocument();
+    const addButton = screen.getByText("+");
+    fireEvent.click(addButton);
 
-    const toDoList = screen.getByTestId('toDoList');
-    expect(toDoList.childElementCount).toBe(1);
+    const header = screen.getByText("할 일 추가");
+    expect(header).toBeInTheDocument();
 
-    fireEvent.change(input, { target: { value: 'study react 2' } });
-    fireEvent.click(button);
+    const goBack = screen.getByText("돌아가기");
+    expect(goBack).toBeInTheDocument();
+    const input = screen.getByPlaceholderText("할 일을 입력해 주세요");
+    expect(input).toBeInTheDocument();
+    const button = screen.getByText("추가");
+    expect(button).toBeInTheDocument();
 
-    const todoItem2 = screen.getByText('study react 2');
-    expect(todoItem2).toBeInTheDocument();
-    expect(toDoList.childElementCount).toBe(2);
+    expect(container).toMatchSnapshot();
 
-    const deleteButtons = screen.getAllByText('삭제');
-    fireEvent.click(deleteButtons[0]);
-
-    expect(todoItem).not.toBeInTheDocument();
-    expect(toDoList.childElementCount).toBe(1);
+    fireEvent.click(goBack);
+    expect(header.textContent).toBe("할 일 목록");
+    const toDoList = screen.getByTestId("toDoList");
+    expect(toDoList).toBeInTheDocument();
   });
 
-  it('does not add emtpy ToDo', () => {
+  it("does not add emtpy ToDo", () => {
     render(<App />);
 
-    const toDoList = screen.getByTestId('toDoList');
+    const toDoList = screen.getByTestId("toDoList");
     const length = toDoList.childElementCount;
 
-    const button = screen.getByText('추가');
+    const button = screen.getByText("추가");
     fireEvent.click(button);
 
     expect(toDoList.childElementCount).toBe(length);
   });
 
-  it('loads localStorage data', () => {
-    localStorage.setItem('ToDoList', '["ToDo 1", "ToDo 2", "ToDo 3"]');
+  it("loads localStorage data", () => {
+    localStorage.setItem("ToDoList", '["ToDo 1", "ToDo 2", "ToDo 3"]');
     render(<App />);
 
-    expect(screen.getByText('ToDo 1')).toBeInTheDocument();
-    expect(screen.getByText('ToDo 2')).toBeInTheDocument();
-    expect(screen.getByText('ToDo 3')).toBeInTheDocument();
-    expect(screen.getAllByText('삭제').length).toBe(3);
+    expect(screen.getByText("ToDo 1")).toBeInTheDocument();
+    expect(screen.getByText("ToDo 2")).toBeInTheDocument();
+    expect(screen.getByText("ToDo 3")).toBeInTheDocument();
+    expect(screen.getAllByText("삭제").length).toBe(3);
   });
 });
