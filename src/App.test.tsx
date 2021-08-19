@@ -60,25 +60,139 @@ describe("<App />", () => {
     expect(toDoList).toBeInTheDocument();
   });
 
-  it("does not add emtpy ToDo", () => {
-    render(<App />);
+  it("goes to detail page and go back to list page", () => {
+    localStorage.setItem("ToDoList", '["ToDo 1"]');
 
+    const history = createMemoryHistory();
+    history.push("/");
+
+    const { container } = render(
+      <Router history={history}>
+        <App />
+      </Router>
+    );
+
+    const toDoItem = screen.getByText("ToDo 1");
+    expect(toDoItem).toBeInTheDocument();
+    fireEvent.click(toDoItem);
+
+    const header = screen.getByText("할 일 상세");
+    expect(header).toBeInTheDocument();
+
+    const goBack = screen.getByText("돌아가기");
+    expect(goBack).toBeInTheDocument();
+
+    const toDo = screen.getByText("ToDo 1");
+    expect(toDo).toBeInTheDocument();
+    const button = screen.getByText("삭제");
+    expect(button).toBeInTheDocument();
+
+    expect(container).toMatchSnapshot();
+
+    fireEvent.click(goBack);
+    expect(header.textContent).toBe("할 일 목록");
     const toDoList = screen.getByTestId("toDoList");
-    const length = toDoList.childElementCount;
-
-    const button = screen.getByText("추가");
-    fireEvent.click(button);
-
-    expect(toDoList.childElementCount).toBe(length);
+    expect(toDoList).toBeInTheDocument();
   });
 
-  it("loads localStorage data", () => {
-    localStorage.setItem("ToDoList", '["ToDo 1", "ToDo 2", "ToDo 3"]');
-    render(<App />);
+  it("shows not found page if the user enters the wrong url, and go back to list page", () => {
+    const history = createMemoryHistory();
+    history.push("/foo");
 
-    expect(screen.getByText("ToDo 1")).toBeInTheDocument();
-    expect(screen.getByText("ToDo 2")).toBeInTheDocument();
-    expect(screen.getByText("ToDo 3")).toBeInTheDocument();
-    expect(screen.getAllByText("삭제").length).toBe(3);
+    const { container } = render(
+      <Router history={history}>
+        <App />
+      </Router>
+    );
+
+    const header = screen.getByText("에러");
+    expect(header).toBeInTheDocument();
+    const goBack = screen.getByText("돌아가기");
+    expect(goBack).toBeInTheDocument();
+    const NotFoundMsg = screen.getByText("Not Found :)");
+    expect(NotFoundMsg).toBeInTheDocument();
+
+    expect(container).toMatchSnapshot();
+
+    fireEvent.click(goBack);
+    expect(header.textContent).toBe("할 일 목록");
+    const toDoList = screen.getByTestId("toDoList");
+    expect(toDoList).toBeInTheDocument();
+  });
+
+  it("add a new todo", () => {
+    const history = createMemoryHistory();
+    history.push("/");
+
+    render(
+      <Router history={history}>
+        <App />
+      </Router>
+    );
+
+    const addBtn = screen.getByText("+");
+    fireEvent.click(addBtn);
+
+    const input = screen.getByPlaceholderText("할 일을 입력해 주세요");
+    const button = screen.getByText("추가");
+    fireEvent.change(input, { target: { value: "New ToDo" } });
+    fireEvent.click(button);
+
+    const header = screen.getByText("할 일 목록");
+    expect(header).toBeInTheDocument();
+    const newToDo = screen.getByText("New ToDo");
+    expect(newToDo).toBeInTheDocument();
+  });
+
+  it("deletes ToDo from ToDo list page", () => {
+    localStorage.setItem("ToDoList", '["ToDo 1"]');
+
+    const history = createMemoryHistory();
+    history.push("/");
+
+    render(
+      <Router history={history}>
+        <App />
+      </Router>
+    );
+
+    const toDoItem = screen.getByText("ToDo 1");
+    const deleteButton = screen.getByText("삭제");
+    expect(toDoItem).toBeInTheDocument();
+    expect(deleteButton).toBeInTheDocument();
+
+    fireEvent.click(deleteButton);
+    expect(toDoItem).not.toBeInTheDocument();
+    expect(deleteButton).not.toBeInTheDocument();
+    expect(localStorage.getItem("ToDoList")).toBe("[]");
+  });
+
+  it("deletes ToDo from the detail page", () => {
+    localStorage.setItem("ToDoList", '["ToDo 1"]');
+
+    const history = createMemoryHistory();
+    history.push("/");
+
+    render(
+      <Router history={history}>
+        <App />
+      </Router>
+    );
+
+    const toDoItem = screen.getByText("ToDo 1");
+    expect(toDoItem).toBeInTheDocument();
+    fireEvent.click(toDoItem);
+    const header = screen.getByText("할 일 상세");
+    expect(header).toBeInTheDocument();
+
+    const deleteButton = screen.getByText("삭제");
+    fireEvent.click(deleteButton);
+
+    expect(header.textContent).toBe("할 일 목록");
+    const toDoList = screen.getByTestId("toDoList");
+    expect(toDoList).toBeInTheDocument();
+
+    expect(toDoList.firstChild).toBeNull();
+    expect(localStorage.getItem("ToDoList")).toBe("[]");
   });
 });
